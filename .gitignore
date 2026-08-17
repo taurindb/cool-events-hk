@@ -1,0 +1,14 @@
+.staging/
+.DS_Store
+*.heic
+*.HEIC
+
+# Nothing secret should ever live in this repo, but belt and braces:
+.env
+.env.*
+*.pem
+*.key
+id_rsa*
+id_ed25519*
+credentials*
+secrets*

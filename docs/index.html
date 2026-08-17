@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What's On HK — Events for Students in Hong Kong</title>
+<meta name="description" content="A student guide to gigs, exhibitions, markets and free events happening around Hong Kong this week.">
+<meta name="color-scheme" content="light dark">
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎟️</text></svg>">
+</head>
+<body>
+<header class="masthead">
+  <div class="wrap">
+    <h1>What's On <span>HK</span></h1>
+    <p class="tagline">Events around Hong Kong, picked for students.</p>
+    <p class="updated">Updated <time id="updated">—</time></p>
+  </div>
+</header>
+
+<nav class="filters wrap" aria-label="Filter events">
+  <div class="search-row">
+    <input type="search" id="search" placeholder="Search events, venues, districts…" aria-label="Search events">
+  </div>
+  <div class="chip-row" id="when-filters" role="group" aria-label="Filter by date">
+    <button class="chip is-active" data-when="upcoming">Upcoming</button>
+    <button class="chip" data-when="today">Today</button>
+    <button class="chip" data-when="weekend">This weekend</button>
+    <button class="chip" data-when="week">Next 7 days</button>
+    <button class="chip" data-when="all">All</button>
+  </div>
+  <div class="chip-row" id="cat-filters" role="group" aria-label="Filter by category"></div>
+  <label class="free-toggle">
+    <input type="checkbox" id="free-only">
+    <span>Free &amp; student deals only</span>
+  </label>
+</nav>
+
+<main class="wrap">
+  <p class="count" id="count" aria-live="polite"></p>
+  <div id="events" class="grid"></div>
+  <p id="empty" class="empty" hidden>Nothing matches those filters yet. Try widening the date range.</p>
+</main>
+
+<footer class="wrap site-footer">
+  <p>Community-run listings. Details are gathered automatically and may change — always check the official link before you travel.</p>
+  <p>Spotted something wrong or want your event listed? Details on the <a href="https://github.com" id="repo-link">project page</a>.</p>
+</footer>
+
+<template id="card-tpl">
+  <article class="card">
+    <a class="card-media" href="#" target="_blank" rel="noopener noreferrer">
+      <img alt="" loading="lazy" decoding="async">
+      <span class="badge-price"></span>
+    </a>
+    <div class="card-body">
+      <p class="card-when"><time></time></p>
+      <h2 class="card-title"><a href="#" target="_blank" rel="noopener noreferrer"></a></h2>
+      <p class="card-summary"></p>
+      <p class="card-venue"></p>
+      <ul class="card-tags"></ul>
+      <div class="card-links"></div>
+    </div>
+  </article>
+</template>
+
+<script src="app.js"></script>
+</body>
+</html>
