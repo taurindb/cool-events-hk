@@ -12,7 +12,8 @@ details, and publishes a static site to GitHub Pages.
 | `docs/data/events.json` | The only data source. The site renders straight from it. |
 | `docs/images/` | Header images, resized and EXIF-stripped by the ingest script. |
 | `scripts/ingest.sh` | Copies new photos out of the drop folder. |
-| `scripts/publish.sh` | Stages the allowlisted paths, commits, pushes. |
+| `scripts/publish.sh` | Stamps assets, stages the allowlisted paths, commits, pushes. |
+| `scripts/stamp_assets.py` | Rewrites `?v=` on each asset link to a hash of that file. |
 | `ingest-manifest.txt` | Hashes of photos already processed, so nothing is done twice. |
 | `.staging/` | Scratch, gitignored. |
 
@@ -131,6 +132,12 @@ framework. Keep it that way: it is what makes the site cheap to host and gives i
 almost no attack surface. Everything renders through `textContent` and URLs go
 through `safeUrl()` in `app.js`; keep both when adding fields, so a malformed
 flyer transcription can never inject markup.
+
+If you edit `style.css`, `app.js`, `backdrop.js` or `artwork.js` by hand, run
+`python3 scripts/stamp_assets.py` before committing — or just use
+`scripts/publish.sh`, which does it for you. GitHub Pages caches assets for
+about ten minutes, so without a fresh `?v=` stamp a returning visitor can load
+new HTML against an old cached script and get a half-rendered page.
 
 Preview locally with:
 

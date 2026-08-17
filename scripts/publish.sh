@@ -10,7 +10,11 @@ set -euo pipefail
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO"
 
-ALLOWED=(docs/data/events.json docs/images ingest-manifest.txt)
+ALLOWED=(docs/data/events.json docs/images docs/index.html ingest-manifest.txt)
+
+# Re-stamp asset URLs so returning visitors can never pair new HTML with a
+# stale cached script.
+python3 "$REPO/scripts/stamp_assets.py"
 
 git add -- "${ALLOWED[@]}" 2>/dev/null || true
 
