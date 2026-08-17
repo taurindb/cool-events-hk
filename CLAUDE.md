@@ -83,7 +83,18 @@ These are not style preferences. Do not work around them.
    ```
 
    On success it prints JSON — merge `image`, `imageAlt`, `imageCredit` and
-   `imageCreditUrl` into the event. On failure it prints the reason to stderr
+   `imageCreditUrl` into the event.
+
+   It looks for a schema.org `Event` in the page's JSON-LD first and only falls
+   back to `og:image`/`twitter:image`, because an Event's image is about that
+   event by construction where `og:image` is often one banner for the whole
+   site. `via` in the output says which was used. When JSON-LD is present the
+   output also carries a `structured` block with the venue's own `startDate`,
+   `location` and `offers.price` — treat that as a stronger source than a
+   search result and reconcile it against your research before publishing; if
+   they disagree, prefer the structured data and note the conflict.
+
+   On failure it prints the reason to stderr
    and exits non-zero: leave the event with no `image` and let the generated
    artwork stand. Failure is the normal case and is not worth retrying or
    working around. It declines when the page has no `og:image`, when the image

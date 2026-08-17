@@ -47,26 +47,158 @@ MIN_HEIGHT = 315
 MAX_EDGE = 1600
 
 
+EVENT_TYPES = {
+    "event", "musicevent", "theaterevent", "danceevent", "comedyevent",
+    "exhibitionevent", "screeningevent", "festival", "socialevent",
+    "educationevent", "businessevent", "sportsevent", "visualartsevent",
+    "literaryevent", "foodevent", "childrensevent",
+}
+
+
 class MetaParser(HTMLParser):
-    """Collects <meta> property/content pairs and stops at </head>."""
+    """Collects <meta> pairs and any ld+json blocks."""
 
     def __init__(self):
         super().__init__(convert_charrefs=True)
         self.meta = {}
-        self.done = False
+        self.ld_blocks = []
+        self._in_ld = False
+        self._buf = []
 
     def handle_starttag(self, tag, attrs):
+        a = dict(attrs)
+        if tag == "script":
+            if (a.get("type") or "").lower().strip() == "application/ld+json":
+                self._in_ld = True
+                self._buf = []
+            return
         if tag != "meta":
             return
-        a = dict(attrs)
         key = (a.get("property") or a.get("name") or "").lower()
         content = a.get("content")
         if key and content and key not in self.meta:
             self.meta[key] = content
 
+    def handle_data(self, data):
+        if self._in_ld:
+            self._buf.append(data)
+
     def handle_endtag(self, tag):
-        if tag == "head":
-            self.done = True
+        if tag == "script" and self._in_ld:
+            self._in_ld = False
+            self.ld_blocks.append("".join(self._buf))
+
+
+def walk_json(node):
+    """Yield every dict in a JSON-LD document, however it is nested."""
+    if isinstance(node, dict):
+        yield node
+        for value in node.values():
+            yield from walk_json(value)
+    elif isinstance(node, list):
+        for item in node:
+            yield from walk_json(item)
+
+
+def as_image_url(value):
+    """schema.org `image` may be a string, an ImageObject, or a list of either."""
+    if isinstance(value, str):
+        return value.strip() or None
+    if isinstance(value, dict):
+        for key in ("url", "contentUrl", "@id"):
+            if isinstance(value.get(key), str) and value[key].strip():
+                return value[key].strip()
+        return None
+    if isinstance(value, list):
+        for item in value:
+            found = as_image_url(item)
+            if found:
+                return found
+    return None
+
+
+def summarise_event(node):
+    """The few schema.org Event fields worth cross-checking research against.
+
+    Emitted for information only — the caller still decides what to publish.
+    A venue's own structured data is a stronger source than a search result.
+    """
+    if not isinstance(node, dict):
+        return None
+
+    def text(value):
+        if isinstance(value, str):
+            return value.strip() or None
+        if isinstance(value, dict):
+            for key in ("name", "@id", "url"):
+                if isinstance(value.get(key), str):
+                    return value[key].strip() or None
+        if isinstance(value, list) and value:
+            return text(value[0])
+        return None
+
+    out = {}
+    for key in ("name", "startDate", "endDate", "eventStatus", "url"):
+        value = text(node.get(key))
+        if value:
+            out[key] = value
+
+    location = node.get("location")
+    if isinstance(location, list) and location:
+        location = location[0]
+    if isinstance(location, dict):
+        venue = text(location.get("name"))
+        if venue:
+            out["locationName"] = venue
+        address = location.get("address")
+        if isinstance(address, dict):
+            parts = [address.get(k) for k in
+                     ("streetAddress", "addressLocality", "addressRegion")]
+            joined = ", ".join(p.strip() for p in parts if isinstance(p, str) and p.strip())
+            if joined:
+                out["locationAddress"] = joined
+        elif isinstance(address, str) and address.strip():
+            out["locationAddress"] = address.strip()
+
+    offers = node.get("offers")
+    if isinstance(offers, list) and offers:
+        offers = offers[0]
+    if isinstance(offers, dict):
+        price = offers.get("price")
+        if price not in (None, ""):
+            out["price"] = str(price)
+        for key in ("priceCurrency", "availability"):
+            value = text(offers.get(key))
+            if value:
+                out[key] = value
+        url = text(offers.get("url"))
+        if url:
+            out["ticketUrl"] = url
+
+    return out or None
+
+
+def event_from_ld(parser):
+    """The first schema.org Event in the page, if there is one.
+
+    Preferred over og:image because an Event's `image` is by definition about
+    that event, where og:image is whatever the site wants in link previews —
+    frequently one banner for the whole domain.
+    """
+    for block in parser.ld_blocks:
+        try:
+            data = json.loads(block)
+        except (json.JSONDecodeError, ValueError):
+            continue
+        for node in walk_json(data):
+            types = node.get("@type")
+            types = [types] if isinstance(types, str) else (types or [])
+            if not any(isinstance(t, str) and t.lower() in EVENT_TYPES for t in types):
+                continue
+            image = as_image_url(node.get("image"))
+            if image:
+                return node, image
+    return None, None
 
 
 def log(msg):
@@ -94,24 +226,32 @@ def get(url, cap):
 
 
 def find_image_url(html, page_url):
+    """Best available header image, plus how it was found.
+
+    Returns (url, meta, source_kind, event_node).
+    """
     parser = MetaParser()
     try:
         parser.feed(html)
     except Exception:
         pass
 
+    event, ld_image = event_from_ld(parser)
+    if ld_image:
+        return urllib.parse.urljoin(page_url, ld_image), parser.meta, "json-ld", event
+
     for key in ("og:image:secure_url", "og:image:url", "og:image", "twitter:image",
                 "twitter:image:src"):
         candidate = parser.meta.get(key)
         if candidate:
-            return urllib.parse.urljoin(page_url, candidate.strip()), parser.meta
+            return urllib.parse.urljoin(page_url, candidate.strip()), parser.meta, key, None
 
     # Some pages only set it on a <link rel="image_src">.
     match = re.search(r'<link[^>]+rel=["\']image_src["\'][^>]+href=["\']([^"\']+)',
                       html, re.I)
     if match:
-        return urllib.parse.urljoin(page_url, match.group(1)), parser.meta
-    return None, parser.meta
+        return urllib.parse.urljoin(page_url, match.group(1)), parser.meta, "image_src", None
+    return None, parser.meta, None, None
 
 
 def site_default_image(page_url):
@@ -130,7 +270,7 @@ def site_default_image(page_url):
         raw, _headers, final = get(root, HTML_CAP)
     except Exception:
         return None
-    url, _meta = find_image_url(raw.decode("utf-8", "replace"), final)
+    url, _meta, _kind, _event = find_image_url(raw.decode("utf-8", "replace"), final)
     return url
 
 
@@ -171,15 +311,17 @@ def main():
         return 1
 
     html = raw.decode("utf-8", "replace")
-    image_url, meta = find_image_url(html, final_url)
+    image_url, meta, kind, event = find_image_url(html, final_url)
     if not image_url:
-        log("no og:image on the page")
+        log("no event image, og:image or twitter:image on the page")
         return 1
 
-    if not args.allow_site_default:
+    # A JSON-LD Event image is about that event by construction, so the
+    # site-default check only applies to the page-level metadata fallbacks.
+    if kind != "json-ld" and not args.allow_site_default:
         default = site_default_image(final_url)
         if default and default == image_url:
-            log(f"og:image is the site-wide default ({image_url}); "
+            log(f"{kind} is the site-wide default ({image_url}); "
                 "not specific to this event, keeping generated artwork")
             return 1
 
@@ -232,15 +374,21 @@ def main():
     credit = (meta.get("og:site_name")
               or urllib.parse.urlsplit(final_url).netloc.removeprefix("www."))
 
-    print(json.dumps({
+    result = {
         "image": f"images/{out.name}",
         "imageAlt": f"Promotional image for {args.title}" if args.title else "",
         "imageCredit": credit,
         "imageCreditUrl": final_url,
         "source": image_url,
+        "via": kind,
         "width": final_w,
         "height": final_h,
-    }, ensure_ascii=False))
+    }
+    structured = summarise_event(event)
+    if structured:
+        result["structured"] = structured
+
+    print(json.dumps(result, ensure_ascii=False))
     return 0
 
 
