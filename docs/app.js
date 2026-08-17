@@ -43,7 +43,18 @@ const timeFmt = new Intl.DateTimeFormat("en-HK", {
 
 const prefersDark = matchMedia("(prefers-color-scheme: dark)");
 
-const state = { events: [], when: "upcoming", category: "all", freeOnly: false, query: "" };
+const state = {
+  events: [],
+  when: "upcoming",
+  category: "all",
+  freeOnly: false,
+  query: "",
+  // Inclusive epoch-day numbers, counted in Hong Kong. Both null means the
+  // calendar is not filtering and the date chips are in charge.
+  rangeStart: null,
+  rangeEnd: null,
+  calendarMonth: null, // { y, m } — m is 0-indexed
+};
 
 const els = {
   grid: document.getElementById("events"),
@@ -55,6 +66,10 @@ const els = {
   whenFilters: document.getElementById("when-filters"),
   catFilters: document.getElementById("cat-filters"),
   tpl: document.getElementById("card-tpl"),
+  calTitle: document.getElementById("cal-title"),
+  calGrid: document.querySelector(".cal-grid"),
+  calClear: document.querySelector(".cal-clear"),
+  calHint: document.getElementById("cal-hint"),
 };
 
 // Only same-origin relative paths and http(s) links are ever rendered.
@@ -94,10 +109,39 @@ function hkDay(date) {
   return Math.round(Date.UTC(y, m - 1, d) / 86400000);
 }
 
+// Epoch-day numbers are just integers, so they convert back through UTC.
+function dayToYMD(n) {
+  const d = new Date(n * 86400000);
+  return { y: d.getUTCFullYear(), m: d.getUTCMonth(), d: d.getUTCDate() };
+}
+function ymdToDay(y, m, d) {
+  return Math.round(Date.UTC(y, m, d) / 86400000);
+}
+// Epoch day 0 was a Thursday; 0 = Sunday.
+function dayOfWeek(n) { return (n + 4) % 7; }
+
 function eventDate(ev) { return parseHK(ev.start); }
 function eventEnd(ev) { return parseHK(ev.end) || parseHK(ev.start); }
 
+// The inclusive span of days an event occupies, or null if undated.
+function eventSpan(ev) {
+  const start = eventDate(ev);
+  if (!start) return null;
+  const from = hkDay(start);
+  const to = hkDay(eventEnd(ev));
+  if (!Number.isFinite(from) || !Number.isFinite(to)) return null;
+  return { from, to: Math.max(from, to) };
+}
+
 function matchesWhen(ev, now) {
+  // A calendar selection takes over from the date chips entirely.
+  if (state.rangeStart !== null) {
+    const span = eventSpan(ev);
+    if (!span) return true; // fail open on undated events
+    const end = state.rangeEnd ?? state.rangeStart;
+    return span.from <= end && span.to >= state.rangeStart;
+  }
+
   if (state.when === "all") return true;
   const start = eventDate(ev);
   if (!start) return false;
@@ -339,9 +383,8 @@ function buildCard(ev) {
     media.style.backgroundImage = gradientFor(ev);
     glyph.textContent = CATEGORY_GLYPHS[ev.category] || CATEGORY_GLYPHS.other;
 
-    const hue = ((CATEGORY_HUES[ev.category] ?? CATEGORY_HUES.other) / 360) % 1;
-    const painted = window.EventArtwork?.paint(
-      art, `${ev.id || ""}${ev.title || ""}`, hue, prefersDark.matches
+    const painted = window.EventArtwork?.attach(
+      art, `${ev.id || ""}${ev.title || ""}`, ev.category || "other"
     );
     if (painted) glyph.remove();
     else art.remove();
@@ -416,6 +459,9 @@ function buildCard(ev) {
 
 function render() {
   const list = visibleEvents();
+  // Drop the old canvases from the animation registry before the cards holding
+  // them are thrown away, or the loop keeps painting into detached nodes.
+  window.EventArtwork?.reset();
   els.grid.replaceChildren(...list.map(buildCard));
   els.empty.hidden = list.length > 0;
   els.empty.textContent = state.events.length
@@ -424,6 +470,160 @@ function render() {
   els.count.textContent = list.length
     ? `${list.length} event${list.length === 1 ? "" : "s"}`
     : "";
+}
+
+/* ---------- Calendar ---------- */
+
+const monthFmt = new Intl.DateTimeFormat("en-HK", { month: "long", year: "numeric", timeZone: "UTC" });
+
+// Every day that any event touches, so multi-day runs mark their whole span.
+function daysWithEvents() {
+  const days = new Set();
+  for (const ev of state.events) {
+    const span = eventSpan(ev);
+    if (!span) continue;
+    for (let d = span.from; d <= span.to; d++) days.add(d);
+  }
+  return days;
+}
+
+function buildCalendar() {
+  if (!els.calGrid) return;
+
+  const today = hkDay(new Date());
+  if (!state.calendarMonth) {
+    const { y, m } = dayToYMD(today);
+    state.calendarMonth = { y, m };
+  }
+
+  const { y, m } = state.calendarMonth;
+  els.calTitle.textContent = monthFmt.format(new Date(Date.UTC(y, m, 1)));
+
+  const marked = daysWithEvents();
+  const first = ymdToDay(y, m, 1);
+  const daysInMonth = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+  const leading = (dayOfWeek(first) + 6) % 7; // Monday-first grid
+
+  const cells = [];
+  for (let i = 0; i < leading; i++) {
+    const filler = document.createElement("span");
+    filler.className = "cal-cell is-empty";
+    cells.push(filler);
+  }
+
+  const selEnd = state.rangeEnd ?? state.rangeStart;
+
+  for (let date = 1; date <= daysInMonth; date++) {
+    const dayNum = ymdToDay(y, m, date);
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "cal-cell";
+    btn.dataset.day = String(dayNum);
+    btn.textContent = String(date);
+
+    const has = marked.has(dayNum);
+    if (has) btn.classList.add("has-events");
+    if (dayNum === today) btn.classList.add("is-today");
+
+    if (state.rangeStart !== null && dayNum >= state.rangeStart && dayNum <= selEnd) {
+      btn.classList.add("in-range");
+      if (dayNum === state.rangeStart) btn.classList.add("is-start");
+      if (dayNum === selEnd) btn.classList.add("is-end");
+      btn.setAttribute("aria-pressed", "true");
+    } else {
+      btn.setAttribute("aria-pressed", "false");
+    }
+
+    const { y: ty, m: tm, d: td } = dayToYMD(dayNum);
+    const label = new Intl.DateTimeFormat("en-HK", {
+      weekday: "long", day: "numeric", month: "long", timeZone: "UTC",
+    }).format(new Date(Date.UTC(ty, tm, td)));
+    btn.setAttribute("aria-label", has ? `${label} — has events` : label);
+
+    cells.push(btn);
+  }
+
+  els.calGrid.replaceChildren(...cells);
+  els.calClear.hidden = state.rangeStart === null;
+  updateCalendarHint();
+}
+
+function updateCalendarHint() {
+  if (!els.calHint) return;
+  if (state.rangeStart === null) {
+    els.calHint.textContent = "Pick a day, or a start and end day, to filter the list.";
+    return;
+  }
+  const fmt = (n) => {
+    const { y, m, d } = dayToYMD(n);
+    return new Intl.DateTimeFormat("en-HK", {
+      day: "numeric", month: "short", timeZone: "UTC",
+    }).format(new Date(Date.UTC(y, m, d)));
+  };
+  els.calHint.textContent = state.rangeEnd === null || state.rangeEnd === state.rangeStart
+    ? `Showing ${fmt(state.rangeStart)}. Pick another day for a range.`
+    : `Showing ${fmt(state.rangeStart)} – ${fmt(state.rangeEnd)}.`;
+}
+
+function clearRange() {
+  state.rangeStart = null;
+  state.rangeEnd = null;
+}
+
+function pickDay(dayNum) {
+  if (state.rangeStart === null || state.rangeEnd !== null) {
+    // Nothing selected, or a complete range — start a new one.
+    state.rangeStart = dayNum;
+    state.rangeEnd = null;
+  } else if (dayNum === state.rangeStart) {
+    clearRange(); // tapping the same day again deselects
+  } else {
+    // Read the anchor before writing, or the max below sees the new min.
+    const anchor = state.rangeStart;
+    state.rangeStart = Math.min(anchor, dayNum);
+    state.rangeEnd = Math.max(anchor, dayNum);
+  }
+
+  // The chips and the calendar are two views of the same filter, so light the
+  // chips down while a date selection is active.
+  syncWhenChips();
+  buildCalendar();
+  render();
+}
+
+function syncWhenChips() {
+  const active = state.rangeStart === null;
+  for (const chip of els.whenFilters.querySelectorAll(".chip")) {
+    chip.classList.toggle("is-active", active && chip.dataset.when === state.when);
+    chip.classList.toggle("is-dimmed", !active);
+  }
+}
+
+function wireCalendar() {
+  if (!els.calGrid) return;
+
+  els.calGrid.addEventListener("click", (e) => {
+    const cell = e.target.closest(".cal-cell[data-day]");
+    if (!cell) return;
+    pickDay(Number(cell.dataset.day));
+  });
+
+  for (const nav of document.querySelectorAll(".cal-nav")) {
+    nav.addEventListener("click", () => {
+      const step = Number(nav.dataset.step);
+      const { y, m } = state.calendarMonth;
+      const shifted = new Date(Date.UTC(y, m + step, 1));
+      state.calendarMonth = { y: shifted.getUTCFullYear(), m: shifted.getUTCMonth() };
+      buildCalendar();
+    });
+  }
+
+  els.calClear.addEventListener("click", () => {
+    clearRange();
+    syncWhenChips();
+    buildCalendar();
+    render();
+  });
 }
 
 function buildCategoryFilters() {
@@ -451,6 +651,13 @@ function wireChipRow(container, key, prop) {
     state[key] = chip.dataset[prop];
     for (const other of container.querySelectorAll(".chip")) {
       other.classList.toggle("is-active", other === chip);
+      other.classList.remove("is-dimmed");
+    }
+    // Choosing a date chip means giving up any calendar selection; leaving both
+    // active would show two contradictory date filters at once.
+    if (key === "when" && state.rangeStart !== null) {
+      clearRange();
+      buildCalendar();
     }
     render();
   });
@@ -468,8 +675,8 @@ async function init() {
     state.freeOnly = els.freeOnly.checked;
     render();
   });
-  // The artwork bakes the light or dark palette in at paint time, so it has to
-  // be repainted when the reader's system flips between them.
+  // The artwork bakes the light or dark palette in when it paints, so the cards
+  // have to be rebuilt when the reader's system flips between them.
   prefersDark.addEventListener("change", render);
 
   els.grid.addEventListener("click", (e) => {
@@ -499,6 +706,8 @@ async function init() {
   }
 
   buildCategoryFilters();
+  wireCalendar();
+  buildCalendar();
   render();
 }
 
