@@ -10,10 +10,13 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎟️</text></svg>">
 </head>
 <body>
+<canvas id="backdrop" aria-hidden="true"></canvas>
+<div class="scrim" aria-hidden="true"></div>
+
 <header class="masthead">
   <div class="wrap">
     <h1>What's On <span>HK</span></h1>
-    <p class="tagline">The best of Hong Kong, at student prices.</p>
+    <p class="tagline">Hand-selected events taking place in one of the most vibrant metropolises on planet Earth.</p>
     <p class="updated">Updated <time id="updated">—</time></p>
   </div>
 </header>
@@ -70,6 +73,7 @@
   </article>
 </template>
 
+<script src="backdrop.js" defer></script>
 <script src="app.js"></script>
 </body>
 </html>

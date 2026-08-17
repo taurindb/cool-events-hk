@@ -1,5 +1,6 @@
 :root {
   --bg: #fbfaf8;
+  --bg-rgb: 251, 250, 248;
   --surface: #ffffff;
   --text: #16151a;
   --muted: #5d5a68;
@@ -15,6 +16,7 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #131217;
+    --bg-rgb: 19, 18, 23;
     --surface: #1c1b22;
     --text: #f1eff4;
     --muted: #a29eae;
@@ -29,9 +31,33 @@
 
 * { box-sizing: border-box; }
 
+/* Stands in for the shader if WebGL is unavailable or still starting. */
+html { background: var(--bg); }
+
+#backdrop,
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+#backdrop { width: 100%; height: 100%; display: block; }
+
+/* Lets the shader read at full strength behind the masthead, then fades up to
+   a near-solid page colour so the listings stay comfortable to read. */
+.scrim {
+  background: linear-gradient(
+    to bottom,
+    rgba(var(--bg-rgb), .26) 0,
+    rgba(var(--bg-rgb), .34) 200px,
+    rgba(var(--bg-rgb), .88) 400px,
+    rgba(var(--bg-rgb), .95) 580px
+  );
+}
+
 body {
   margin: 0;
-  background: var(--bg);
+  background: transparent;
   color: var(--text);
   font: 16px/1.55 ui-sans-serif, -apple-system, "Segoe UI", "Helvetica Neue",
         "PingFang HK", "Noto Sans HK", sans-serif;
@@ -42,9 +68,8 @@ body {
 
 /* Masthead */
 .masthead {
-  padding: 2.5rem 0 1.75rem;
-  border-bottom: 1px solid var(--line);
-  background: var(--surface);
+  padding: 3.25rem 0 2rem;
+  background: transparent;
 }
 .masthead h1 {
   margin: 0;
@@ -53,8 +78,24 @@ body {
   line-height: 1.05;
 }
 .masthead h1 span { color: var(--accent); }
-.tagline { margin: .4rem 0 0; color: var(--muted); font-size: 1.05rem; max-width: 44ch; text-wrap: pretty; }
-.updated { margin: .75rem 0 0; font-size: .8rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+/* Masthead text sits directly on the shader, so it uses the full-strength text
+   colour rather than the muted grey used elsewhere. */
+.tagline {
+  margin: .4rem 0 0;
+  color: var(--text);
+  opacity: .82;
+  font-size: 1.05rem;
+  max-width: 44ch;
+  text-wrap: pretty;
+}
+.updated {
+  margin: .75rem 0 0;
+  font-size: .8rem;
+  color: var(--text);
+  opacity: .62;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
 
 /* Filters */
 .filters { padding: 1.5rem 0 .5rem; display: grid; gap: .85rem; }
