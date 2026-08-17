@@ -1,4 +1,104 @@
 {
   "updated": "2026-08-17",
-  "events": []
+  "events": [
+    {
+      "id": "r-live-lines-sound-workshop-2026",
+      "title": "Sound & Live Composition Workshop: Decoding the Sound of Stones",
+      "summary": "Karen Yu and Hugo Morales Murguía take apart the sound design behind R=Live/Lines — how a moving robotic stone turns into music. Held in English. Free, but you must register online in advance and there are only 20 places.",
+      "start": "2026-08-19T15:00",
+      "category": "talk",
+      "venue": {
+        "name": "The Lab, East Kowloon Cultural Centre",
+        "address": "60 Ngau Tau Kok Road, Kowloon",
+        "district": "Ngau Tau Kok · MTR Kowloon Bay Exit B",
+        "mapUrl": "https://maps.apple.com/?q=East%20Kowloon%20Cultural%20Centre"
+      },
+      "price": {
+        "isFree": true,
+        "studentDiscount": "Advance enrolment required"
+      },
+      "links": {
+        "official": "https://www.ekcc.hk/en/events/2026/r_livelines-workshops.html"
+      },
+      "source": {
+        "photo": "Screenshot 2026-08-17 at 3.15.28 PM.png",
+        "addedOn": "2026-08-17"
+      }
+    },
+    {
+      "id": "r-live-lines-performance-2026",
+      "title": "R=Live/Lines — Sound Performance",
+      "summary": "Robotic stones roam a projected indoor rock garden, leaving trails of light and sound behind them. A five-part sound performance by Kenny Wong, Karen Yu and Hugo Morales Murguía, with a meet-the-artist session after every show. Four performances: Fri 21st 8pm, Sat 22nd 3pm and 8pm, Sun 23rd 6pm. Free seating, so turn up early.",
+      "start": "2026-08-21T20:00",
+      "end": "2026-08-23T18:00",
+      "category": "music",
+      "venue": {
+        "name": "The Lab, East Kowloon Cultural Centre",
+        "address": "60 Ngau Tau Kok Road, Kowloon",
+        "district": "Ngau Tau Kok · MTR Kowloon Bay Exit B",
+        "mapUrl": "https://maps.apple.com/?q=East%20Kowloon%20Cultural%20Centre"
+      },
+      "price": {
+        "text": "HK$180",
+        "isFree": false,
+        "studentDiscount": "HK$90 with full-time student ID"
+      },
+      "links": {
+        "official": "https://www.ekcc.hk/en/events/2026/r_livelines.html",
+        "tickets": "https://www.urbtix.hk"
+      },
+      "source": {
+        "photo": "Screenshot 2026-08-17 at 3.15.28 PM.png",
+        "addedOn": "2026-08-17"
+      }
+    },
+    {
+      "id": "r-live-lines-vision-workshop-2026",
+      "title": "Vision Workshop: Deconstructing the Creative Process",
+      "summary": "Artistic directors Kenny Wong and Karen Yu on the dialogue between human and machine, and what breaks when you try to merge robotics, sound and live performance. Held in Cantonese. Free, but you must register online in advance and there are only 20 places.",
+      "start": "2026-08-23T15:00",
+      "category": "talk",
+      "venue": {
+        "name": "The Lab, East Kowloon Cultural Centre",
+        "address": "60 Ngau Tau Kok Road, Kowloon",
+        "district": "Ngau Tau Kok · MTR Kowloon Bay Exit B",
+        "mapUrl": "https://maps.apple.com/?q=East%20Kowloon%20Cultural%20Centre"
+      },
+      "price": {
+        "isFree": true,
+        "studentDiscount": "Advance enrolment required"
+      },
+      "links": {
+        "official": "https://www.ekcc.hk/en/events/2026/r_livelines-workshops.html"
+      },
+      "source": {
+        "photo": "Screenshot 2026-08-17 at 3.15.28 PM.png",
+        "addedOn": "2026-08-17"
+      }
+    },
+    {
+      "id": "r-live-lines-installation-2026",
+      "title": "R=Live/Lines — Interactive Installation",
+      "summary": "The same robotic rock garden, open to walk through and play with rather than watch from a seat. Free entry, no booking. Wed–Fri 26–28 Aug and Sun 30 Aug, 12noon–7pm; Sat 29 Aug, 2pm–9pm.",
+      "start": "2026-08-26T12:00",
+      "end": "2026-08-30T19:00",
+      "category": "arts",
+      "venue": {
+        "name": "The Lab, East Kowloon Cultural Centre",
+        "address": "60 Ngau Tau Kok Road, Kowloon",
+        "district": "Ngau Tau Kok · MTR Kowloon Bay Exit B",
+        "mapUrl": "https://maps.apple.com/?q=East%20Kowloon%20Cultural%20Centre"
+      },
+      "price": {
+        "isFree": true
+      },
+      "links": {
+        "official": "https://www.ekcc.hk/en/events/2026/r_livelines.html"
+      },
+      "source": {
+        "photo": "Screenshot 2026-08-17 at 3.15.28 PM.png",
+        "addedOn": "2026-08-17"
+      }
+    }
+  ]
 }
