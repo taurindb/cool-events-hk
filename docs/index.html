@@ -6,7 +6,7 @@
 <title>What's Going On, Hong Kong? — Events for Students</title>
 <meta name="description" content="Hand-selected gigs, exhibitions, markets and free events taking place around Hong Kong — with student prices, venues and ticket links.">
 <meta name="color-scheme" content="light dark">
-<link rel="stylesheet" href="style.css?v=906006da">
+<link rel="stylesheet" href="style.css?v=58828706">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👀</text></svg>">
 </head>
 <body>
@@ -14,51 +14,51 @@
 <div class="scrim" aria-hidden="true"></div>
 
 <header class="masthead">
-  <div class="wrap">
+ <div class="wrap masthead-grid">
+
+  <div class="masthead-text">
     <h1>What's Going On, <span>Hong Kong?</span></h1>
     <p class="tagline">Hand-selected events taking place in one of the most vibrant metropolises on planet Earth.</p>
     <p class="updated">Updated <time id="updated">—</time></p>
   </div>
-</header>
 
-<div class="controls wrap">
+  <nav class="filters" aria-label="Filter events">
+    <div class="search-row">
+      <input type="search" id="search" placeholder="Search events, venues, districts…" aria-label="Search events">
+    </div>
+    <div class="chip-row" id="when-filters" role="group" aria-label="Filter by date">
+      <button class="chip is-active" data-when="upcoming">Upcoming</button>
+      <button class="chip" data-when="today">Today</button>
+      <button class="chip" data-when="weekend">This weekend</button>
+      <button class="chip" data-when="week">Next 7 days</button>
+      <button class="chip" data-when="all">All</button>
+    </div>
+    <div class="chip-row" id="cat-filters" role="group" aria-label="Filter by category"></div>
+    <label class="free-toggle">
+      <input type="checkbox" id="free-only">
+      <span>Free &amp; student deals only</span>
+    </label>
+  </nav>
 
-<nav class="filters" aria-label="Filter events">
-  <div class="search-row">
-    <input type="search" id="search" placeholder="Search events, venues, districts…" aria-label="Search events">
-  </div>
-  <div class="chip-row" id="when-filters" role="group" aria-label="Filter by date">
-    <button class="chip is-active" data-when="upcoming">Upcoming</button>
-    <button class="chip" data-when="today">Today</button>
-    <button class="chip" data-when="weekend">This weekend</button>
-    <button class="chip" data-when="week">Next 7 days</button>
-    <button class="chip" data-when="all">All</button>
-  </div>
-  <div class="chip-row" id="cat-filters" role="group" aria-label="Filter by category"></div>
-  <label class="free-toggle">
-    <input type="checkbox" id="free-only">
-    <span>Free &amp; student deals only</span>
-  </label>
-</nav>
+  <section class="calendar-col" aria-labelledby="cal-title">
+    <div class="calendar">
+      <div class="cal-head">
+        <button type="button" class="cal-nav" data-step="-1" aria-label="Previous month">&#8249;</button>
+        <h2 class="cal-title" id="cal-title">&nbsp;</h2>
+        <button type="button" class="cal-nav" data-step="1" aria-label="Next month">&#8250;</button>
+        <button type="button" class="cal-clear" hidden>Clear dates</button>
+      </div>
+      <div class="cal-weekdays" aria-hidden="true">
+        <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span>
+        <span>Fri</span><span>Sat</span><span>Sun</span>
+      </div>
+      <div class="cal-grid"></div>
+      <p class="cal-hint" id="cal-hint">Pick a day, or a start and end day, to filter the list.</p>
+    </div>
+  </section>
 
-<section class="calendar-col" aria-labelledby="cal-title">
- <div class="calendar">
-  <div class="cal-head">
-    <button type="button" class="cal-nav" data-step="-1" aria-label="Previous month">&#8249;</button>
-    <h2 class="cal-title" id="cal-title">&nbsp;</h2>
-    <button type="button" class="cal-nav" data-step="1" aria-label="Next month">&#8250;</button>
-    <button type="button" class="cal-clear" hidden>Clear dates</button>
-  </div>
-  <div class="cal-weekdays" aria-hidden="true">
-    <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span>
-    <span>Fri</span><span>Sat</span><span>Sun</span>
-  </div>
-  <div class="cal-grid"></div>
-  <p class="cal-hint" id="cal-hint">Pick a day, or a start and end day, to filter the list.</p>
  </div>
-</section>
-
-</div>
+</header>
 
 <main class="wrap">
   <p class="count" id="count" aria-live="polite"></p>
