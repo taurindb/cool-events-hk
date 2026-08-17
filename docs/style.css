@@ -138,16 +138,21 @@ body {
 .calendar-col { grid-area: cal; }
 
 @media (min-width: 860px) {
+  /* Both columns hug the left rather than the calendar being pushed to the far
+     edge of a 1660px container, which left it floating away from the text it
+     belongs with. The left column is capped rather than 1fr for the same
+     reason — 1fr would eat every spare pixel and push the calendar right. */
   .masthead-grid {
-    grid-template-columns: minmax(0, 1fr) 244px;
+    grid-template-columns: minmax(0, 660px) 244px;
     grid-template-areas:
       "text cal"
       "filters cal";
-    column-gap: 3rem;
-    row-gap: 1.75rem;
+    column-gap: 2rem;
+    row-gap: 1.5rem;
     align-items: start;
+    justify-content: start;
   }
-  .calendar-col { justify-self: end; }
+  .calendar-col { justify-self: start; }
 }
 
 .masthead h1 {
