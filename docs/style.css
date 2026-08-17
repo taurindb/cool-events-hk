@@ -114,7 +114,7 @@ body {
   font-optical-sizing: auto;
 }
 
-.wrap { width: min(1120px, 100% - 2.5rem); margin-inline: auto; }
+.wrap { width: min(1660px, 100% - 2.5rem); margin-inline: auto; }
 
 /* Masthead */
 .masthead {
@@ -209,9 +209,15 @@ body {
 /* Grid */
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   gap: 1.25rem;
   padding-bottom: 3rem;
+}
+
+/* Five across once there is genuinely room for it. Below this the auto-fill
+   above steps down to four, three, two and one on its own. */
+@media (min-width: 1440px) {
+  .grid { grid-template-columns: repeat(5, 1fr); }
 }
 
 .card {
@@ -230,7 +236,8 @@ body {
   aspect-ratio: 3 / 2;
   background: var(--accent-soft);
 }
-.card-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.card-media img,
+.card-media .card-art { width: 100%; height: 100%; object-fit: cover; display: block; }
 .card-media:not([href]) { pointer-events: none; }
 
 /* Generated header for events with no flyer photo. */

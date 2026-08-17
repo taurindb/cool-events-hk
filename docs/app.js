@@ -41,6 +41,8 @@ const timeFmt = new Intl.DateTimeFormat("en-HK", {
   timeZone: HK_TZ, hour: "numeric", minute: "2-digit",
 });
 
+const prefersDark = matchMedia("(prefers-color-scheme: dark)");
+
 const state = { events: [], when: "upcoming", category: "all", freeOnly: false, query: "" };
 
 const els = {
@@ -75,8 +77,20 @@ function parseHK(value) {
 
 // Whole days since the epoch, counted in Hong Kong, so date comparisons never
 // straddle a midnight in the reader's own timezone.
+//
+// Read through formatToParts rather than splitting a formatted string: the
+// exact output of a locale is not contractual, and a browser that formatted
+// en-CA as anything but YYYY-MM-DD would turn every date into NaN and silently
+// empty the entire listing.
 function hkDay(date) {
-  const [y, m, d] = hkDayFmt.format(date).split("-").map(Number);
+  const parts = hkDayFmt.formatToParts(date);
+  let y = NaN, m = NaN, d = NaN;
+  for (const part of parts) {
+    if (part.type === "year") y = Number(part.value);
+    else if (part.type === "month") m = Number(part.value);
+    else if (part.type === "day") d = Number(part.value);
+  }
+  if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d)) return NaN;
   return Math.round(Date.UTC(y, m - 1, d) / 86400000);
 }
 
@@ -91,6 +105,10 @@ function matchesWhen(ev, now) {
   const today = hkDay(now);
   const from = hkDay(start) - today;
   const to = hkDay(eventEnd(ev)) - today;
+
+  // Fail open. If a date can't be resolved, showing an event that may be out of
+  // range beats hiding the whole listing behind a silent NaN.
+  if (!Number.isFinite(from) || !Number.isFinite(to)) return true;
 
   if (to < 0) return false; // finished before today
   if (state.when === "upcoming") return true;
@@ -303,6 +321,7 @@ function buildCard(ev) {
   const card = els.tpl.content.cloneNode(true);
   const media = card.querySelector(".card-media");
   const img = card.querySelector(".card-media img");
+  const art = card.querySelector(".card-art");
   const glyph = card.querySelector(".card-glyph");
   const badge = card.querySelector(".badge-price");
   const titleLink = card.querySelector(".card-title a");
@@ -311,11 +330,21 @@ function buildCard(ev) {
   if (ev.image) {
     img.src = safeUrl(ev.image) || ev.image;
     img.alt = ev.imageAlt || `Promotional image for ${ev.title}`;
+    art.remove();
     glyph.remove();
   } else {
     img.remove();
+    // Gradient and glyph go down first so there is always something to look at
+    // if WebGL is unavailable; the artwork paints over them when it succeeds.
     media.style.backgroundImage = gradientFor(ev);
     glyph.textContent = CATEGORY_GLYPHS[ev.category] || CATEGORY_GLYPHS.other;
+
+    const hue = ((CATEGORY_HUES[ev.category] ?? CATEGORY_HUES.other) / 360) % 1;
+    const painted = window.EventArtwork?.paint(
+      art, `${ev.id || ""}${ev.title || ""}`, hue, prefersDark.matches
+    );
+    if (painted) glyph.remove();
+    else art.remove();
   }
 
   const title = ev.title || "Untitled event";
@@ -439,6 +468,10 @@ async function init() {
     state.freeOnly = els.freeOnly.checked;
     render();
   });
+  // The artwork bakes the light or dark palette in at paint time, so it has to
+  // be repainted when the reader's system flips between them.
+  prefersDark.addEventListener("change", render);
+
   els.grid.addEventListener("click", (e) => {
     const btn = e.target.closest(".cal-ics");
     if (!btn) return;

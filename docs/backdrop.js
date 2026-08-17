@@ -19,7 +19,16 @@
   `;
 
   const FRAG = `
+    // mediump is genuinely 16-bit on most mobile GPUs. With a clock that only
+    // ever grows, the per-frame change in sin() eventually falls below what
+    // mediump can represent and the whole thing freezes into a flat colour —
+    // it renders once, then stops moving. highp where the hardware offers it.
+    #ifdef GL_FRAGMENT_PRECISION_HIGH
+    precision highp float;
+    #else
     precision mediump float;
+    #endif
+
     uniform vec2 u_res;
     uniform float u_time;
     uniform float u_dark;
@@ -35,12 +44,19 @@
 
     // Where a given column sits along the spectrum. Layered sines at unrelated
     // frequencies keep the banding from ever looking like it repeats.
+    // The clock is wrapped at LOOP seconds so it never grows large enough to
+    // lose precision. Every rate below is chosen to come back to where it
+    // started at exactly that moment, so the wrap is invisible: the sine rates
+    // are multiples of 0.01 (and 0.01 * 200pi = 2pi), and the noise advances by
+    // exactly 19 lattice cells over one period.
+    const float LOOP = 628.31853;
+
     float field(float x, float y, float t) {
       float v = 0.0;
       v += sin(x * 4.7 + t * 0.11) * 0.50;
       v += sin(x * 9.3 - t * 0.07 + y * 0.5) * 0.30;
       v += sin(x * 17.1 + t * 0.17) * 0.16;
-      v += vnoise(x * 3.1 - t * 0.03) * 0.90;
+      v += vnoise(x * 3.1 - t * (19.0 / LOOP)) * 0.90;
       v += y * 0.15;
       return v;
     }
@@ -58,6 +74,7 @@
       // Each channel reads the field a little further along the x axis. That
       // offset is what produces the prismatic edge where two bands meet.
       float d = 0.030 + 0.014 * sin(t * 0.05);
+
       float fr = field(uv.x - d, uv.y, t);
       float fg = field(uv.x,     uv.y, t);
       float fb = field(uv.x + d, uv.y, t);
@@ -137,9 +154,10 @@
 
   let frame = null;
   const start = performance.now();
+  const LOOP_SECONDS = 628.31853; // 200pi — matches LOOP in the shader
 
   function loop(now) {
-    draw((now - start) / 1000);
+    draw(((now - start) / 1000) % LOOP_SECONDS);
     frame = requestAnimationFrame(loop);
   }
 
