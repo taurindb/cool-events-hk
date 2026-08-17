@@ -22,7 +22,11 @@
       "source": {
         "photo": "Screenshot 2026-08-17 at 3.15.28 PM.png",
         "addedOn": "2026-08-17"
-      }
+      },
+      "image": "images/hero-a79ff387e57c.jpg",
+      "imageAlt": "Promotional image for Sound & Live Composition Workshop: Decoding the Sound of Stones",
+      "imageCredit": "East Kowloon Cultural Centre",
+      "imageCreditUrl": "https://www.ekcc.hk/en/events/2026/r_livelines-workshops.html"
     },
     {
       "id": "r-live-lines-performance-2026",
@@ -49,7 +53,11 @@
       "source": {
         "photo": "Screenshot 2026-08-17 at 3.15.28 PM.png",
         "addedOn": "2026-08-17"
-      }
+      },
+      "image": "images/hero-a79ff387e57c.jpg",
+      "imageAlt": "Promotional image for R=Live/Lines — Sound Performance",
+      "imageCredit": "East Kowloon Cultural Centre",
+      "imageCreditUrl": "https://www.ekcc.hk/en/events/2026/r_livelines.html"
     },
     {
       "id": "r-live-lines-vision-workshop-2026",
@@ -72,7 +80,11 @@
       "source": {
         "photo": "Screenshot 2026-08-17 at 3.15.28 PM.png",
         "addedOn": "2026-08-17"
-      }
+      },
+      "image": "images/hero-a79ff387e57c.jpg",
+      "imageAlt": "Promotional image for Vision Workshop: Deconstructing the Creative Process",
+      "imageCredit": "East Kowloon Cultural Centre",
+      "imageCreditUrl": "https://www.ekcc.hk/en/events/2026/r_livelines-workshops.html"
     },
     {
       "id": "r-live-lines-installation-2026",
@@ -95,6 +107,39 @@
       },
       "source": {
         "photo": "Screenshot 2026-08-17 at 3.15.28 PM.png",
+        "addedOn": "2026-08-17"
+      },
+      "image": "images/hero-a79ff387e57c.jpg",
+      "imageAlt": "Promotional image for R=Live/Lines — Interactive Installation",
+      "imageCredit": "East Kowloon Cultural Centre",
+      "imageCreditUrl": "https://www.ekcc.hk/en/events/2026/r_livelines.html"
+    },
+    {
+      "id": "wu-tang-vinyl-listening-2026",
+      "title": "Wu-Tang Clan Vinyl Listening Session",
+      "summary": "An intimate vinyl session on how Hong Kong kung-fu cinema shaped Wu-Tang Clan — moving between records, film, swordplay and hard drums. Run by Softerfields, in the basement garage at Heath.",
+      "start": "2026-08-27T19:00",
+      "end": "2026-08-27T22:00",
+      "category": "music",
+      "venue": {
+        "name": "The Garage at Heath, 慶方商場 Heath Mall",
+        "address": "B/F, 36-44 Nathan Road, Tsim Sha Tsui",
+        "district": "Tsim Sha Tsui",
+        "mapUrl": "https://maps.apple.com/?q=Heath%20Mall%2036-44%20Nathan%20Road%20Tsim%20Sha%20Tsui"
+      },
+      "price": {
+        "text": "HK$180",
+        "isFree": false
+      },
+      "links": {
+        "tickets": "https://www.eventbrite.sg/e/wu-tang-clan-vinyl-listening-session-tickets-1996983355975"
+      },
+      "image": "images/hero-2d67fcabfd00.jpg",
+      "imageAlt": "Blurred red-lit photograph of a passing train, used as the event artwork",
+      "imageCredit": "Softerfields via Eventbrite",
+      "imageCreditUrl": "https://www.eventbrite.sg/e/wu-tang-clan-vinyl-listening-session-tickets-1996983355975",
+      "source": {
+        "photo": "Screenshot 2026-08-17 at 5.13.46 PM.png",
         "addedOn": "2026-08-17"
       }
     }
