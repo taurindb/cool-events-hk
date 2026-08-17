@@ -12,6 +12,7 @@ details, and publishes a static site to GitHub Pages.
 | `docs/data/events.json` | The only data source. The site renders straight from it. |
 | `docs/images/` | Header images, resized and EXIF-stripped by the ingest script. |
 | `scripts/ingest.sh` | Copies new photos out of the drop folder. |
+| `scripts/fetch_hero.py` | Pulls an event page's `og:image` for use as a header. |
 | `scripts/publish.sh` | Stamps assets, stages the allowlisted paths, commits, pushes. |
 | `scripts/stamp_assets.py` | Rewrites `?v=` on each asset link to a hash of that file. |
 | `ingest-manifest.txt` | Hashes of photos already processed, so nothing is done twice. |
@@ -50,12 +51,16 @@ These are not style preferences. Do not work around them.
 6. **Never fabricate details.** If a price, time, or venue cannot be confirmed,
    omit the field and set `"needsCheck": true` rather than guessing. Students
    travel across the city based on these listings.
-7. **Header images**: use the flyer photo the ingest script produced. Do not copy
-   press photos or stock images off other websites into this repo — the flyer is
-   the one image we can publish safely. If the photo is a phone screenshot rather
-   than a flyer, it will show a status bar, app chrome, or blurred private
-   content: publish the event with no image and delete the generated file from
-   `docs/images/`. A card with no image renders cleanly.
+7. **Header images**, in order of preference:
+   1. The flyer photo the ingest script produced, when it is a real flyer.
+   2. The event page's `og:image`, via `scripts/fetch_hero.py` — see below.
+   3. Nothing. The card generates its own artwork, which is a perfectly good
+      outcome and better than a wrong or generic picture.
+
+   Do not copy any other image off a website by hand. If the photo is a phone
+   screenshot rather than a flyer it will show a status bar, app chrome, or
+   blurred private content: publish the event with no image and delete the
+   generated file from `docs/images/`.
 8. **Links must be `https://`** and point at the venue, promoter, or ticketing
    site. No affiliate links, no URL shorteners, no tracking parameters.
 
@@ -71,16 +76,36 @@ These are not style preferences. Do not work around them.
    venue's or promoter's own site over aggregators. Two independent sources for a
    date or price is ideal; one official source is acceptable; zero means
    `needsCheck`.
-4. Append to `docs/data/events.json`, set `updated` to today, and drop events
+4. If the event has no flyer photo, try its official page for a header image:
+
+   ```bash
+   python3 scripts/fetch_hero.py "<official url>" --title "<event title>"
+   ```
+
+   On success it prints JSON — merge `image`, `imageAlt`, `imageCredit` and
+   `imageCreditUrl` into the event. On failure it prints the reason to stderr
+   and exits non-zero: leave the event with no `image` and let the generated
+   artwork stand. Failure is the normal case and is not worth retrying or
+   working around. It declines when the page has no `og:image`, when the image
+   is too small to be anything but a logo, when `robots.txt` disallows the
+   fetch, and when the image is the venue's site-wide banner rather than
+   something specific to the event — East Kowloon Cultural Centre serves the
+   same photo of its building for every listing, which is why all four of its
+   events use generated artwork.
+
+   Never pass `--allow-site-default` in an unattended run.
+
+5. Append to `docs/data/events.json`, set `updated` to today, and drop events
    that finished more than 60 days ago to keep the file small.
-5. Move each successfully processed original into `_processed/` inside the drop
+6. Move each successfully processed original into `_processed/` inside the drop
    folder. Leave anything you skipped where it is, so it can be looked at.
    Move by the exact path in column 2 of the TSV, or with `find … -exec mv`.
    Never retype a filename: macOS screenshots contain a narrow no-break space
    (U+202F) before "AM"/"PM" that looks identical to a normal space and will
    make `mv` fail with "No such file or directory".
-6. `./scripts/publish.sh`.
-7. Report: how many added, which were skipped and why, which are `needsCheck`.
+7. `./scripts/publish.sh`.
+8. Report: how many added, which were skipped and why, which are `needsCheck`,
+   and which fell back to generated artwork because no usable image was found.
 
 Prefer events that are actually useful to students — cheap or free, reachable by
 MTR, open to the public, not industry-only.

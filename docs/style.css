@@ -450,6 +450,14 @@ body {
 .card-links a { font-size: .88rem; font-weight: 600; color: var(--accent); text-decoration: none; }
 .card-links a:hover { text-decoration: underline; }
 
+.card-credit {
+  margin: .5rem 0 0;
+  font-size: .7rem;
+  color: var(--muted);
+}
+.card-credit a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+.card-credit a:hover { color: var(--accent); }
+
 .card-cal {
   margin: 0;
   padding-top: .55rem;

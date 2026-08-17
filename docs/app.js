@@ -446,6 +446,25 @@ function buildCard(ev) {
   }
   if (!links.children.length) links.remove();
 
+  // Published images are the venue's, so they carry a credit that links back.
+  const credit = card.querySelector(".card-credit");
+  if (ev.image && ev.imageCredit) {
+    credit.append("Photo: ");
+    const href = safeUrl(ev.imageCreditUrl);
+    if (href) {
+      const a = document.createElement("a");
+      a.href = href;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      a.textContent = ev.imageCredit;
+      credit.append(a);
+    } else {
+      credit.append(ev.imageCredit);
+    }
+  } else {
+    credit.remove();
+  }
+
   const cal = card.querySelector(".card-cal");
   const gcal = googleCalendarUrl(ev);
   if (gcal) {
