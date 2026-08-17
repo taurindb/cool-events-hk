@@ -12,6 +12,35 @@ const CATEGORY_LABELS = {
   other: "Other",
 };
 
+const CATEGORY_GLYPHS = {
+  music: "♪",
+  arts: "◈",
+  film: "▶",
+  food: "◉",
+  market: "❋",
+  sport: "▲",
+  nightlife: "◐",
+  talk: "❝",
+  festival: "✦",
+  community: "❖",
+  other: "✳",
+};
+
+// Event times in events.json are local Hong Kong wall-clock, written without a
+// timezone. Anchoring them to +08:00 keeps the site and its calendar exports
+// correct for a reader in any timezone, not just one sitting in Hong Kong.
+const HK_TZ = "Asia/Hong_Kong";
+const HK_OFFSET = "+08:00";
+const hkDayFmt = new Intl.DateTimeFormat("en-CA", {
+  timeZone: HK_TZ, year: "numeric", month: "2-digit", day: "2-digit",
+});
+const dayFmt = new Intl.DateTimeFormat("en-HK", {
+  timeZone: HK_TZ, weekday: "short", day: "numeric", month: "short",
+});
+const timeFmt = new Intl.DateTimeFormat("en-HK", {
+  timeZone: HK_TZ, hour: "numeric", minute: "2-digit",
+});
+
 const state = { events: [], when: "upcoming", category: "all", freeOnly: false, query: "" };
 
 const els = {
@@ -26,7 +55,7 @@ const els = {
   tpl: document.getElementById("card-tpl"),
 };
 
-// Only same-origin relative paths and https links are ever rendered.
+// Only same-origin relative paths and http(s) links are ever rendered.
 function safeUrl(url) {
   if (typeof url !== "string" || url === "") return null;
   try {
@@ -37,42 +66,43 @@ function safeUrl(url) {
   }
 }
 
-function startOfDay(d) {
-  const copy = new Date(d);
-  copy.setHours(0, 0, 0, 0);
-  return copy;
-}
-
-function eventDate(ev) {
-  const d = new Date(ev.start);
+function parseHK(value) {
+  if (typeof value !== "string" || !value) return null;
+  const stamped = /[zZ]|[+-]\d{2}:?\d{2}$/.test(value) ? value : value + HK_OFFSET;
+  const d = new Date(stamped);
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
-// An event stays listed until the end of the day it finishes on.
-function isOver(ev, now) {
-  const end = new Date(ev.end || ev.start);
-  if (Number.isNaN(end.getTime())) return false;
-  return startOfDay(end) < startOfDay(now);
+// Whole days since the epoch, counted in Hong Kong, so date comparisons never
+// straddle a midnight in the reader's own timezone.
+function hkDay(date) {
+  const [y, m, d] = hkDayFmt.format(date).split("-").map(Number);
+  return Math.round(Date.UTC(y, m - 1, d) / 86400000);
 }
+
+function eventDate(ev) { return parseHK(ev.start); }
+function eventEnd(ev) { return parseHK(ev.end) || parseHK(ev.start); }
 
 function matchesWhen(ev, now) {
   if (state.when === "all") return true;
   const start = eventDate(ev);
-  if (!start) return state.when === "all";
-  if (isOver(ev, now)) return false;
+  if (!start) return false;
+
+  const today = hkDay(now);
+  const from = hkDay(start) - today;
+  const to = hkDay(eventEnd(ev)) - today;
+
+  if (to < 0) return false; // finished before today
   if (state.when === "upcoming") return true;
 
-  const today = startOfDay(now);
-  const day = startOfDay(start);
-  const daysOut = Math.round((day - today) / 86400000);
-
-  if (state.when === "today") return daysOut === 0;
-  if (state.when === "week") return daysOut >= 0 && daysOut <= 7;
+  // A run of several days counts as matching if any of it falls in the window.
+  const overlaps = (a, b) => from <= b && to >= a;
+  if (state.when === "today") return overlaps(0, 0);
+  if (state.when === "week") return overlaps(0, 7);
   if (state.when === "weekend") {
-    // Friday through Sunday of the current week.
-    const dow = now.getDay();
-    const daysToFriday = (5 - dow + 7) % 7;
-    return daysOut >= 0 && daysOut >= daysToFriday && daysOut <= daysToFriday + 2;
+    const dow = (today + 4) % 7; // epoch day 0 was a Thursday; 0 = Sunday
+    const toFriday = (5 - dow + 7) % 7;
+    return overlaps(toFriday, toFriday + 2);
   }
   return true;
 }
@@ -109,60 +139,200 @@ function visibleEvents() {
     });
 }
 
+function isMultiDay(ev) {
+  const start = eventDate(ev), end = parseHK(ev.end);
+  return Boolean(start && end && hkDay(end) > hkDay(start));
+}
+
 function formatWhen(ev) {
   const start = eventDate(ev);
   if (!start) return ev.dateText || "Date to be confirmed";
-
-  const dayFmt = new Intl.DateTimeFormat("en-HK", { weekday: "short", day: "numeric", month: "short" });
-  const timeFmt = new Intl.DateTimeFormat("en-HK", { hour: "numeric", minute: "2-digit" });
+  if (isMultiDay(ev)) return `${dayFmt.format(start)} – ${dayFmt.format(parseHK(ev.end))}`;
   let out = dayFmt.format(start);
-
-  if (ev.end) {
-    const end = new Date(ev.end);
-    if (!Number.isNaN(end.getTime()) && startOfDay(end) > startOfDay(start)) {
-      out += ` – ${dayFmt.format(end)}`;
-      return out;
-    }
-  }
   if (ev.hasTime !== false) out += ` · ${timeFmt.format(start)}`;
   return out;
+}
+
+/* ---------- Calendar export ---------- */
+
+const pad = (n) => String(n).padStart(2, "0");
+
+function utcStamp(date) {
+  return date.getUTCFullYear() + pad(date.getUTCMonth() + 1) + pad(date.getUTCDate())
+    + "T" + pad(date.getUTCHours()) + pad(date.getUTCMinutes()) + pad(date.getUTCSeconds()) + "Z";
+}
+
+function hkDateStamp(date) {
+  return hkDayFmt.format(date).replace(/-/g, "");
+}
+
+// A run across several days becomes an all-day span rather than one long block
+// sitting in the reader's calendar from Friday night to Sunday evening.
+// All-day end dates are exclusive in both iCalendar and Google Calendar.
+function calendarWindow(ev) {
+  const start = eventDate(ev);
+  if (!start) return null;
+  const end = parseHK(ev.end);
+  if (end && hkDay(end) > hkDay(start)) {
+    return { allDay: true, start, end: new Date(end.getTime() + 86400000) };
+  }
+  return { allDay: false, start, end: end || new Date(start.getTime() + 2 * 3600000) };
+}
+
+function calendarDetails(ev) {
+  const description = [ev.summary, ev.links?.official, ev.links?.tickets]
+    .filter(Boolean).join("\n\n");
+  const location = [ev.venue?.name, ev.venue?.address].filter(Boolean).join(", ");
+  return { description, location };
+}
+
+function googleCalendarUrl(ev) {
+  const win = calendarWindow(ev);
+  if (!win) return null;
+  const dates = win.allDay
+    ? `${hkDateStamp(win.start)}/${hkDateStamp(win.end)}`
+    : `${utcStamp(win.start)}/${utcStamp(win.end)}`;
+  const { description, location } = calendarDetails(ev);
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text: ev.title || "Event",
+    dates,
+    ctz: HK_TZ,
+  });
+  if (description) params.set("details", description);
+  if (location) params.set("location", location);
+  return `https://calendar.google.com/calendar/render?${params}`;
+}
+
+const icsEscape = (s) => String(s)
+  .replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
+
+// RFC 5545 caps content lines at 75 octets; continuations start with a space.
+// Counted in UTF-8 bytes, not characters — accented names and dashes cost more
+// than one byte each — and split on code points so no character is cut in half.
+const utf8 = new TextEncoder();
+function icsFold(line) {
+  const parts = [];
+  let current = "";
+  let bytes = 0;
+  for (const ch of line) {
+    const size = utf8.encode(ch).length;
+    if (bytes + size > 75) {
+      parts.push(current);
+      current = " " + ch;
+      bytes = 1 + size;
+    } else {
+      current += ch;
+      bytes += size;
+    }
+  }
+  parts.push(current);
+  return parts.join("\r\n");
+}
+
+function buildIcs(ev) {
+  const win = calendarWindow(ev);
+  if (!win) return null;
+  const { description, location } = calendarDetails(ev);
+  const url = safeUrl(ev.links?.official || ev.links?.tickets);
+
+  const lines = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//What's On HK//Events//EN",
+    "CALSCALE:GREGORIAN",
+    "BEGIN:VEVENT",
+    `UID:${ev.id || "event"}@whats-on-hk`,
+    `DTSTAMP:${utcStamp(new Date())}`,
+    ...(win.allDay
+      ? [`DTSTART;VALUE=DATE:${hkDateStamp(win.start)}`, `DTEND;VALUE=DATE:${hkDateStamp(win.end)}`]
+      : [`DTSTART:${utcStamp(win.start)}`, `DTEND:${utcStamp(win.end)}`]),
+    `SUMMARY:${icsEscape(ev.title || "Event")}`,
+  ];
+  if (description) lines.push(`DESCRIPTION:${icsEscape(description)}`);
+  if (location) lines.push(`LOCATION:${icsEscape(location)}`);
+  if (url) lines.push(`URL:${url}`);
+  lines.push("END:VEVENT", "END:VCALENDAR");
+
+  return lines.map(icsFold).join("\r\n") + "\r\n";
+}
+
+function downloadIcs(ev) {
+  const ics = buildIcs(ev);
+  if (!ics) return;
+  const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${ev.id || "event"}.ics`;
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+/* ---------- Rendering ---------- */
+
+// Events without a flyer photo get a generated header instead of a blank box.
+// The hue is derived from the id, so a given event always looks the same.
+// Hue comes from the category rather than a hash of the id, so colour means
+// something — every gig reads violet, every talk warm — and two events off the
+// same flyer can't land on accidentally identical shades. The id only supplies
+// a small jitter so same-category cards aren't carbon copies.
+const CATEGORY_HUES = {
+  music: 275, arts: 330, film: 220, food: 25, market: 150, sport: 195,
+  nightlife: 255, talk: 12, festival: 300, community: 95, other: 210,
+};
+
+function gradientFor(ev) {
+  const id = ev.id || ev.title || "event";
+  let h = 2166136261;
+  for (let i = 0; i < id.length; i++) {
+    h ^= id.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  h = (h ^ (h >>> 15)) >>> 0;
+
+  const base = CATEGORY_HUES[ev.category] ?? CATEGORY_HUES.other;
+  const hue = (base + (h % 25) - 12 + 360) % 360;
+  const partner = (hue + 34) % 360;
+  return `linear-gradient(135deg, hsl(${hue} 58% 46%), hsl(${partner} 62% 32%))`;
 }
 
 function buildCard(ev) {
   const card = els.tpl.content.cloneNode(true);
   const media = card.querySelector(".card-media");
   const img = card.querySelector(".card-media img");
+  const glyph = card.querySelector(".card-glyph");
   const badge = card.querySelector(".badge-price");
   const titleLink = card.querySelector(".card-title a");
   const primaryLink = safeUrl(ev.links?.tickets || ev.links?.official);
 
-  // Without an image the media block would just be an empty coloured box, so
-  // drop it entirely and let the price ride along in the tag row instead.
-  const hasImage = Boolean(ev.image);
-  if (hasImage) {
+  if (ev.image) {
     img.src = safeUrl(ev.image) || ev.image;
     img.alt = ev.imageAlt || `Promotional image for ${ev.title}`;
+    glyph.remove();
   } else {
-    media.remove();
+    img.remove();
+    media.style.backgroundImage = gradientFor(ev);
+    glyph.textContent = CATEGORY_GLYPHS[ev.category] || CATEGORY_GLYPHS.other;
   }
 
   const title = ev.title || "Untitled event";
   if (primaryLink) {
-    if (hasImage) media.href = primaryLink;
+    media.href = primaryLink;
     titleLink.href = primaryLink;
     titleLink.textContent = title;
   } else {
-    if (hasImage) media.removeAttribute("href");
+    media.removeAttribute("href");
     titleLink.replaceWith(document.createTextNode(title));
   }
 
-  const priceText = ev.price?.isFree ? "Free" : (ev.price?.text || "Price TBC");
-  if (hasImage) {
-    badge.textContent = priceText;
-    badge.classList.toggle("is-free", Boolean(ev.price?.isFree));
-  }
+  badge.textContent = ev.price?.isFree ? "Free" : (ev.price?.text || "Price TBC");
+  badge.classList.toggle("is-free", Boolean(ev.price?.isFree));
 
   card.querySelector(".card-when time").textContent = formatWhen(ev);
+
   const summary = card.querySelector(".card-summary");
   if (ev.summary) summary.textContent = ev.summary;
   else summary.remove();
@@ -175,7 +345,6 @@ function buildCard(ev) {
   const tags = card.querySelector(".card-tags");
   const tagList = [];
   if (ev.category) tagList.push({ text: CATEGORY_LABELS[ev.category] || ev.category, cls: "" });
-  if (!hasImage) tagList.push({ text: priceText, cls: ev.price?.isFree ? "tag-student" : "tag-price" });
   if (ev.price?.studentDiscount) tagList.push({ text: `🎓 ${ev.price.studentDiscount}`, cls: "tag-student" });
   if (ev.needsCheck) tagList.push({ text: "Details unconfirmed", cls: "tag-unverified" });
   for (const tag of tagList) {
@@ -203,6 +372,15 @@ function buildCard(ev) {
     links.append(a);
   }
   if (!links.children.length) links.remove();
+
+  const cal = card.querySelector(".card-cal");
+  const gcal = googleCalendarUrl(ev);
+  if (gcal) {
+    cal.querySelector(".cal-google").href = gcal;
+    cal.querySelector(".cal-ics").dataset.ics = ev.id || "";
+  } else {
+    cal.remove();
+  }
 
   return card;
 }
@@ -261,6 +439,12 @@ async function init() {
     state.freeOnly = els.freeOnly.checked;
     render();
   });
+  els.grid.addEventListener("click", (e) => {
+    const btn = e.target.closest(".cal-ics");
+    if (!btn) return;
+    const ev = state.events.find((x) => x.id === btn.dataset.ics);
+    if (ev) downloadIcs(ev);
+  });
 
   try {
     const res = await fetch("data/events.json", { cache: "no-cache" });
@@ -272,7 +456,7 @@ async function init() {
       const d = new Date(data.updated);
       els.updated.textContent = Number.isNaN(d.getTime())
         ? data.updated
-        : new Intl.DateTimeFormat("en-HK", { day: "numeric", month: "long", year: "numeric" }).format(d);
+        : new Intl.DateTimeFormat("en-HK", { day: "numeric", month: "long", year: "numeric", timeZone: HK_TZ }).format(d);
     }
   } catch (err) {
     els.empty.hidden = false;

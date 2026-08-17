@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>What's On HK — Events for Students in Hong Kong</title>
-<meta name="description" content="A student guide to gigs, exhibitions, markets and free events happening around Hong Kong this week.">
+<meta name="description" content="Hand-selected gigs, exhibitions, markets and free events taking place around Hong Kong — with student prices, venues and ticket links.">
 <meta name="color-scheme" content="light dark">
 <link rel="stylesheet" href="style.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎟️</text></svg>">
@@ -13,7 +13,7 @@
 <header class="masthead">
   <div class="wrap">
     <h1>What's On <span>HK</span></h1>
-    <p class="tagline">Events around Hong Kong, picked for students.</p>
+    <p class="tagline">The best of Hong Kong, at student prices.</p>
     <p class="updated">Updated <time id="updated">—</time></p>
   </div>
 </header>
@@ -51,6 +51,7 @@
   <article class="card">
     <a class="card-media" href="#" target="_blank" rel="noopener noreferrer">
       <img alt="" loading="lazy" decoding="async">
+      <span class="card-glyph" aria-hidden="true"></span>
       <span class="badge-price"></span>
     </a>
     <div class="card-body">
@@ -60,6 +61,11 @@
       <p class="card-venue"></p>
       <ul class="card-tags"></ul>
       <div class="card-links"></div>
+      <p class="card-cal">
+        <span>Add to calendar:</span>
+        <a class="cal-google" target="_blank" rel="noopener noreferrer">Google</a>
+        <button type="button" class="cal-ics">Apple / Outlook</button>
+      </p>
     </div>
   </article>
 </template>
