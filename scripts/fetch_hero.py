@@ -45,6 +45,8 @@ TIMEOUT = 15
 MIN_WIDTH = 600
 MIN_HEIGHT = 315
 MAX_EDGE = 1600
+MAX_CANDIDATES = 6   # images to try per page before giving up
+MIN_BYTES_PER_PIXEL = 0.03  # below this it is flat UI chrome, not artwork
 
 
 EVENT_TYPES = {
@@ -254,6 +256,72 @@ def find_image_url(html, page_url):
     return None, parser.meta, None, None
 
 
+CHROME_WORDS = re.compile(
+    r"(icon|logo|sprite|spacer|placeholder|avatar|favicon|arrow|button|btn|share"
+    r"|social|flag|badge|watermark|loader|loading|blank|pixel)", re.I)
+
+HERO_WORDS = re.compile(r"(banner|poster|hero|cover|main|header|keyvisual|kv)", re.I)
+
+
+def normalise(text):
+    return re.sub(r"[^a-z0-9]", "", (text or "").lower())
+
+
+def content_images(html, page_url, title):
+    """In-page images, best candidates first.
+
+    Plenty of venues never declare a hero in their metadata but do put the real
+    poster in the body — East Kowloon Cultural Centre ships
+    R_Live_Lines-banner_event-banner.jpg on a page whose og:image is a photo of
+    the building. Ranking by how much the filename looks like the page it is on
+    finds that reliably without downloading thirty icons to measure them.
+    """
+    refs = re.findall(r"<img[^>]+?(?:data-src|data-original|src)=[\"']([^\"']+)[\"']",
+                      html, re.I)
+
+    slug_raw = (urllib.parse.urlsplit(page_url).path.rsplit("/", 1)[-1]
+                .rsplit(".", 1)[0])
+    slug = normalise(slug_raw)
+    # Whole-slug matching alone is too strict: the page r_livelines-workshops
+    # carries R_Live_Lines-banner.jpg, which shares "livelines" but not the
+    # whole slug. Without the token pass a generic event-workshop.png outranked
+    # the real key art purely because the title contained the word "workshop".
+    slug_tokens = [normalise(t) for t in re.split(r"[^A-Za-z0-9]+", slug_raw)]
+    slug_tokens = [t for t in slug_tokens if len(t) >= 5]
+
+    title_tokens = [normalise(t) for t in re.split(r"\W+", title or "") if len(t) >= 4]
+
+    scored, seen = [], set()
+    for ref in refs:
+        url = urllib.parse.urljoin(page_url, ref.strip())
+        if url in seen:
+            continue
+        seen.add(url)
+
+        name = url.rsplit("/", 1)[-1]
+        if name.lower().endswith(".svg"):
+            continue
+
+        flat = normalise(name.rsplit(".", 1)[0])
+        score = 0
+        if slug and len(slug) >= 5 and slug in flat:
+            score += 100
+        # The page's own slug is a far stronger signal than the event title,
+        # which shares common words like "workshop" with the site's furniture.
+        score += min(120, sum(60 for t in slug_tokens if t in flat))
+        score += min(60, sum(20 for t in title_tokens if t and t in flat))
+        if HERO_WORDS.search(name):
+            score += 10
+        if CHROME_WORDS.search(name):
+            score -= 100
+
+        if score > 0:
+            scored.append((score, url))
+
+    scored.sort(key=lambda pair: -pair[0])
+    return [url for _score, url in scored]
+
+
 def site_default_image(page_url):
     """The og:image on the site's own front page.
 
@@ -311,51 +379,88 @@ def main():
         return 1
 
     html = raw.decode("utf-8", "replace")
-    image_url, meta, kind, event = find_image_url(html, final_url)
-    if not image_url:
-        log("no event image, og:image or twitter:image on the page")
-        return 1
+    meta_url, meta, kind, event = find_image_url(html, final_url)
 
-    # A JSON-LD Event image is about that event by construction, so the
-    # site-default check only applies to the page-level metadata fallbacks.
-    if kind != "json-ld" and not args.allow_site_default:
-        default = site_default_image(final_url)
-        if default and default == image_url:
-            log(f"{kind} is the site-wide default ({image_url}); "
-                "not specific to this event, keeping generated artwork")
-            return 1
+    # Candidates in order of trustworthiness. Metadata first, then the page's
+    # own images ranked by how much they look like they belong to this event.
+    candidates = []
+    if meta_url:
+        # A JSON-LD Event image is about that event by construction; the
+        # site-default check only needs to guard the page-level fallbacks.
+        if kind == "json-ld" or args.allow_site_default:
+            candidates.append((meta_url, kind))
+        else:
+            default = site_default_image(final_url)
+            if default and default == meta_url:
+                log(f"{kind} is the site-wide default ({meta_url}); "
+                    "looking for a better image in the page")
+            else:
+                candidates.append((meta_url, kind))
 
-    try:
-        blob, headers, _ = get(image_url, IMAGE_CAP)
-    except (urllib.error.URLError, urllib.error.HTTPError, OSError) as e:
-        log(f"could not fetch image: {e}")
-        return 1
+    for url in content_images(html, final_url, args.title):
+        if all(url != existing for existing, _ in candidates):
+            candidates.append((url, "content"))
 
-    ctype = (headers.get("Content-Type") or "").split(";")[0].strip().lower()
-    if not ctype.startswith("image/"):
-        log(f"og:image is not an image ({ctype or 'no content-type'})")
-        return 1
-    if len(blob) >= IMAGE_CAP:
-        log("image exceeds the size cap")
+    if not candidates:
+        log("no event image, og:image or usable in-page image found")
         return 1
 
     IMAGES.mkdir(parents=True, exist_ok=True)
-    digest = hashlib.sha256(blob).hexdigest()[:12]
-    out = IMAGES / f"hero-{digest}.jpg"
 
-    with tempfile.NamedTemporaryFile(suffix=".bin", delete=False) as tmp:
-        tmp.write(blob)
-        tmp_path = Path(tmp.name)
+    # Validation happens inside the loop: a candidate that turns out to be a
+    # 60px logo should hand over to the next one, not abandon the event.
+    chosen = None
+    for url, source_kind in candidates[:MAX_CANDIDATES]:
+        try:
+            body, headers, _ = get(url, IMAGE_CAP)
+        except (urllib.error.URLError, urllib.error.HTTPError, OSError) as e:
+            log(f"skipping {url}: {e}")
+            continue
 
-    try:
+        content_type = (headers.get("Content-Type") or "").split(";")[0].strip().lower()
+        if not content_type.startswith("image/"):
+            log(f"skipping {url}: not an image ({content_type or 'no content-type'})")
+            continue
+        if len(body) >= IMAGE_CAP:
+            log(f"skipping {url}: exceeds the size cap")
+            continue
+
+        with tempfile.NamedTemporaryFile(suffix=".bin", delete=False) as tmp:
+            tmp.write(body)
+            tmp_path = Path(tmp.name)
+
         w, h = dimensions(tmp_path)
         if w == 0 or h == 0:
-            log("could not read image dimensions; not a usable image")
-            return 1
+            log(f"skipping {url}: could not read dimensions")
+            tmp_path.unlink(missing_ok=True)
+            continue
         if w < MIN_WIDTH or h < MIN_HEIGHT:
-            log(f"image too small ({w}x{h}); likely a logo, keeping generated artwork")
-            return 1
+            log(f"skipping {url}: too small ({w}x{h}), likely a logo")
+            tmp_path.unlink(missing_ok=True)
+            continue
 
+        # Flat interface graphics compress far harder than photographs or
+        # printed artwork. A speech-bubble label was passing every other check
+        # here at 0.03 bytes per pixel where the real poster sits near 0.14.
+        density = len(body) / float(w * h)
+        if density < MIN_BYTES_PER_PIXEL:
+            log(f"skipping {url}: {density:.3f} bytes/pixel, "
+                "flat graphic rather than artwork")
+            tmp_path.unlink(missing_ok=True)
+            continue
+
+        chosen = (url, source_kind, tmp_path, w, h,
+                  hashlib.sha256(body).hexdigest()[:12])
+        break
+
+    if not chosen:
+        log("no candidate passed validation; keeping generated artwork")
+        return 1
+
+    image_url, kind, tmp_path, w, h, digest = chosen
+    out = IMAGES / f"hero-{digest}.jpg"
+
+    try:
         target = min(max(w, h), MAX_EDGE)
         conv = subprocess.run(
             ["sips", "-s", "format", "jpeg", "-s", "formatOptions", "72",
