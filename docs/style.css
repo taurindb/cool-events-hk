@@ -1,4 +1,54 @@
+/* Self-hosted so no visitor's browser has to call a third party to read the
+   site. Both families are SIL Open Font License. Variable weights, latin and
+   latin-ext only — CJK falls through to the system stack below. */
+
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("fonts/inter-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("fonts/inter-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+    U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020,
+    U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Space Grotesk";
+  font-style: normal;
+  font-weight: 500 700;
+  font-display: swap;
+  src: url("fonts/space-grotesk-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Space Grotesk";
+  font-style: normal;
+  font-weight: 500 700;
+  font-display: swap;
+  src: url("fonts/space-grotesk-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+    U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020,
+    U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
 :root {
+  --font-body: "Inter", ui-sans-serif, -apple-system, "Segoe UI", "Helvetica Neue",
+               "PingFang HK", "Noto Sans HK", sans-serif;
+  --font-display: "Space Grotesk", "Inter", ui-sans-serif, -apple-system,
+                  "PingFang HK", "Noto Sans HK", sans-serif;
+
   --bg: #fbfaf8;
   --bg-rgb: 251, 250, 248;
   --surface: #ffffff;
@@ -59,9 +109,9 @@ body {
   margin: 0;
   background: transparent;
   color: var(--text);
-  font: 16px/1.55 ui-sans-serif, -apple-system, "Segoe UI", "Helvetica Neue",
-        "PingFang HK", "Noto Sans HK", sans-serif;
+  font: 16px/1.55 var(--font-body);
   -webkit-font-smoothing: antialiased;
+  font-optical-sizing: auto;
 }
 
 .wrap { width: min(1120px, 100% - 2.5rem); margin-inline: auto; }
@@ -73,18 +123,23 @@ body {
 }
 .masthead h1 {
   margin: 0;
-  font-size: clamp(2rem, 7vw, 3rem);
-  letter-spacing: -.03em;
-  line-height: 1.05;
+  font-family: var(--font-display);
+  font-size: clamp(1.9rem, 6.2vw, 3.15rem);
+  font-weight: 700;
+  letter-spacing: -.035em;
+  line-height: 1.02;
+  text-wrap: balance;
 }
 .masthead h1 span { color: var(--accent); }
 /* Masthead text sits directly on the shader, so it uses the full-strength text
    colour rather than the muted grey used elsewhere. */
 .tagline {
-  margin: .4rem 0 0;
+  margin: .55rem 0 0;
   color: var(--text);
-  opacity: .82;
-  font-size: 1.05rem;
+  opacity: .92;
+  font-size: clamp(1.02rem, 1.9vw, 1.15rem);
+  font-weight: 600;
+  letter-spacing: -.005em;
   max-width: 44ch;
   text-wrap: pretty;
 }
@@ -214,7 +269,15 @@ body {
   text-transform: uppercase;
   color: var(--accent);
 }
-.card-title { margin: 0; font-size: 1.15rem; line-height: 1.3; letter-spacing: -.01em; }
+.card-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.16rem;
+  font-weight: 700;
+  line-height: 1.24;
+  letter-spacing: -.018em;
+  text-wrap: balance;
+}
 .card-title a { color: inherit; text-decoration: none; }
 .card-title a:hover { text-decoration: underline; }
 .card-summary { margin: 0; color: var(--muted); font-size: .93rem; }
