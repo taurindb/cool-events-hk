@@ -348,16 +348,6 @@ body {
   font-weight: 600;
 }
 
-.free-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: .5rem;
-  font-size: .9rem;
-  color: var(--muted);
-  cursor: pointer;
-  width: fit-content;
-}
-
 .count { margin: 1rem 0 .5rem; font-size: .85rem; color: var(--muted); }
 
 /* Grid */

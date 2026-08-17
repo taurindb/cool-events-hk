@@ -125,6 +125,14 @@ MTR, open to the public, not industry-only.
 `nightlife`, `talk`, `festival`, `community`, `other`. Set `hasTime: false` when
 the flyer gives a date but no start time, so the site prints the day alone.
 
+`price.studentDiscount` is **only** for a concession a student can actually
+claim: a reduced ticket, free entry on a student card, a student ballot. It
+renders as a student-deal badge on the card, and that badge is the only way a
+student spots the deal — there is no longer a filter for it. Booking conditions
+like "register in advance" or "limited places" are not discounts; those belong
+in `summary`. If there is no student price, leave the field out altogether
+rather than putting a note in it.
+
 ## Working on the site
 
 Plain HTML, CSS and JavaScript in `docs/` — no build step, no dependencies, no

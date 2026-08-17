@@ -47,7 +47,6 @@ const state = {
   events: [],
   when: "upcoming",
   category: "all",
-  freeOnly: false,
   query: "",
   // Inclusive epoch-day numbers, counted in Hong Kong. Both null means the
   // calendar is not filtering and the date chips are in charge.
@@ -62,7 +61,6 @@ const els = {
   count: document.getElementById("count"),
   updated: document.getElementById("updated"),
   search: document.getElementById("search"),
-  freeOnly: document.getElementById("free-only"),
   whenFilters: document.getElementById("when-filters"),
   catFilters: document.getElementById("cat-filters"),
   tpl: document.getElementById("card-tpl"),
@@ -182,16 +180,11 @@ function matchesQuery(ev) {
   return haystack.includes(state.query);
 }
 
-function isFreeish(ev) {
-  return Boolean(ev.price?.isFree || ev.price?.studentDiscount);
-}
-
 function visibleEvents() {
   const now = new Date();
   return state.events
     .filter((ev) => matchesWhen(ev, now))
     .filter((ev) => state.category === "all" || ev.category === state.category)
-    .filter((ev) => !state.freeOnly || isFreeish(ev))
     .filter(matchesQuery)
     .sort((a, b) => {
       const da = eventDate(a), db = eventDate(b);
@@ -417,7 +410,15 @@ function buildCard(ev) {
   const tags = card.querySelector(".card-tags");
   const tagList = [];
   if (ev.category) tagList.push({ text: CATEGORY_LABELS[ev.category] || ev.category, cls: "" });
-  if (ev.price?.studentDiscount) tagList.push({ text: `🎓 ${ev.price.studentDiscount}`, cls: "tag-student" });
+  // With the free/student filter gone this tag is the only signal a student
+  // deal exists, so say so outright unless the text already does.
+  if (ev.price?.studentDiscount) {
+    const deal = ev.price.studentDiscount;
+    tagList.push({
+      text: /student/i.test(deal) ? `🎓 ${deal}` : `🎓 Student deal — ${deal}`,
+      cls: "tag-student",
+    });
+  }
   if (ev.needsCheck) tagList.push({ text: "Details unconfirmed", cls: "tag-unverified" });
   for (const tag of tagList) {
     const li = document.createElement("li");
@@ -669,10 +670,6 @@ async function init() {
 
   els.search.addEventListener("input", () => {
     state.query = els.search.value.trim().toLowerCase();
-    render();
-  });
-  els.freeOnly.addEventListener("change", () => {
-    state.freeOnly = els.freeOnly.checked;
     render();
   });
   // The artwork bakes the light or dark palette in when it paints, so the cards

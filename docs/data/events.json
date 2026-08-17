@@ -14,8 +14,7 @@
         "mapUrl": "https://maps.apple.com/?q=East%20Kowloon%20Cultural%20Centre"
       },
       "price": {
-        "isFree": true,
-        "studentDiscount": "Advance enrolment required"
+        "isFree": true
       },
       "links": {
         "official": "https://www.ekcc.hk/en/events/2026/r_livelines-workshops.html"
@@ -65,8 +64,7 @@
         "mapUrl": "https://maps.apple.com/?q=East%20Kowloon%20Cultural%20Centre"
       },
       "price": {
-        "isFree": true,
-        "studentDiscount": "Advance enrolment required"
+        "isFree": true
       },
       "links": {
         "official": "https://www.ekcc.hk/en/events/2026/r_livelines-workshops.html"
