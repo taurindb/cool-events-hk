@@ -176,6 +176,7 @@ body {
   color: var(--muted);
 }
 .card-tags li.tag-student { color: var(--free); background: var(--free-soft); border-color: transparent; font-weight: 600; }
+.card-tags li.tag-price { color: var(--text); font-weight: 600; }
 .card-tags li.tag-unverified { color: var(--accent); background: var(--accent-soft); border-color: transparent; }
 
 .card-links { margin-top: auto; padding-top: .6rem; display: flex; flex-wrap: wrap; gap: .75rem; }

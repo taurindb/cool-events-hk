@@ -51,7 +51,10 @@ These are not style preferences. Do not work around them.
    travel across the city based on these listings.
 7. **Header images**: use the flyer photo the ingest script produced. Do not copy
    press photos or stock images off other websites into this repo — the flyer is
-   the one image we can publish safely.
+   the one image we can publish safely. If the photo is a phone screenshot rather
+   than a flyer, it will show a status bar, app chrome, or blurred private
+   content: publish the event with no image and delete the generated file from
+   `docs/images/`. A card with no image renders cleanly.
 8. **Links must be `https://`** and point at the venue, promoter, or ticketing
    site. No affiliate links, no URL shorteners, no tracking parameters.
 
@@ -71,6 +74,10 @@ These are not style preferences. Do not work around them.
    that finished more than 60 days ago to keep the file small.
 5. Move each successfully processed original into `_processed/` inside the drop
    folder. Leave anything you skipped where it is, so it can be looked at.
+   Move by the exact path in column 2 of the TSV, or with `find … -exec mv`.
+   Never retype a filename: macOS screenshots contain a narrow no-break space
+   (U+202F) before "AM"/"PM" that looks identical to a normal space and will
+   make `mv` fail with "No such file or directory".
 6. `./scripts/publish.sh`.
 7. Report: how many added, which were skipped and why, which are `needsCheck`.
 

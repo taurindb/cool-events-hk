@@ -136,27 +136,31 @@ function buildCard(ev) {
   const titleLink = card.querySelector(".card-title a");
   const primaryLink = safeUrl(ev.links?.tickets || ev.links?.official);
 
-  const imgSrc = safeUrl(ev.image) || ev.image;
-  if (ev.image) {
-    img.src = imgSrc;
+  // Without an image the media block would just be an empty coloured box, so
+  // drop it entirely and let the price ride along in the tag row instead.
+  const hasImage = Boolean(ev.image);
+  if (hasImage) {
+    img.src = safeUrl(ev.image) || ev.image;
     img.alt = ev.imageAlt || `Promotional image for ${ev.title}`;
   } else {
-    img.remove();
+    media.remove();
   }
 
   const title = ev.title || "Untitled event";
   if (primaryLink) {
-    media.href = primaryLink;
+    if (hasImage) media.href = primaryLink;
     titleLink.href = primaryLink;
     titleLink.textContent = title;
   } else {
-    media.removeAttribute("href");
+    if (hasImage) media.removeAttribute("href");
     titleLink.replaceWith(document.createTextNode(title));
   }
 
   const priceText = ev.price?.isFree ? "Free" : (ev.price?.text || "Price TBC");
-  badge.textContent = priceText;
-  badge.classList.toggle("is-free", Boolean(ev.price?.isFree));
+  if (hasImage) {
+    badge.textContent = priceText;
+    badge.classList.toggle("is-free", Boolean(ev.price?.isFree));
+  }
 
   card.querySelector(".card-when time").textContent = formatWhen(ev);
   const summary = card.querySelector(".card-summary");
@@ -171,6 +175,7 @@ function buildCard(ev) {
   const tags = card.querySelector(".card-tags");
   const tagList = [];
   if (ev.category) tagList.push({ text: CATEGORY_LABELS[ev.category] || ev.category, cls: "" });
+  if (!hasImage) tagList.push({ text: priceText, cls: ev.price?.isFree ? "tag-student" : "tag-price" });
   if (ev.price?.studentDiscount) tagList.push({ text: `🎓 ${ev.price.studentDiscount}`, cls: "tag-student" });
   if (ev.needsCheck) tagList.push({ text: "Details unconfirmed", cls: "tag-unverified" });
   for (const tag of tagList) {
