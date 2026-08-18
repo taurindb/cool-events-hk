@@ -1,5 +1,5 @@
 {
-  "updated": "2026-08-17",
+  "updated": "2026-08-18",
   "events": [
     {
       "id": "r-live-lines-sound-workshop-2026",
@@ -141,6 +141,56 @@
       "source": {
         "photo": "Screenshot 2026-08-17 at 5.13.46 PM.png",
         "addedOn": "2026-08-17"
+      }
+    },
+    {
+      "id": "red-stripes-go-ska-2026-08-28",
+      "title": "Go Ska — The Red Stripes Live Album Release",
+      "summary": "Hong Kong's own ska outfit The Red Stripes play two full sets to launch their new live album, with vinyl selectors keeping the night going after. A solid Friday out in Central for anyone into ska, rocksteady or reggae.",
+      "start": "2026-08-28",
+      "hasTime": false,
+      "category": "music",
+      "venue": {
+        "name": "Fringe Club Dairy",
+        "address": "2 Lower Albert Road, Central, Hong Kong",
+        "district": "Central",
+        "mapUrl": "https://maps.apple.com/?q=Fringe%20Club%2C%202%20Lower%20Albert%20Road%2C%20Central%2C%20Hong%20Kong"
+      },
+      "price": {
+        "text": "HK$175",
+        "isFree": false
+      },
+      "links": {
+        "official": "https://www.theredstripeshk.com/"
+      },
+      "image": "images/flyer-bf045b575da0.jpg",
+      "imageAlt": "Poster for The Red Stripes' Go Ska live album release party at Fringe Club Dairy",
+      "source": {
+        "photo": "IMG_9497.jpg",
+        "addedOn": "2026-08-18"
+      }
+    },
+    {
+      "id": "soundlab-jukebox-2026-08-19",
+      "title": "SoundLab presents: ~jukebox with 龢wo4",
+      "summary": "A sound art improvisation night at CityU's SoundLab — solo and jamming sets from guest artist Brian Chu, plus the launch of SoundLab's jukebox installation, a physical archive of sounds and performances. Free, open to the public, but you need to register in advance.",
+      "start": "2026-08-19T19:00",
+      "category": "music",
+      "venue": {
+        "name": "Multimedia Theatre (M1060), Run Run Shaw Creative Media Centre",
+        "address": "18 Tat Hong Avenue, Kowloon Tong",
+        "district": "Kowloon Tong · City University of Hong Kong",
+        "mapUrl": "https://maps.apple.com/?q=Run%20Run%20Shaw%20Creative%20Media%20Centre%2C%2018%20Tat%20Hong%20Avenue%2C%20Kowloon%20Tong"
+      },
+      "price": {
+        "isFree": true
+      },
+      "links": {
+        "official": "https://www.scm.cityu.edu.hk/events/soundlab-jukebox"
+      },
+      "source": {
+        "photo": "IMG_9461.PNG",
+        "addedOn": "2026-08-18"
       }
     }
   ]
